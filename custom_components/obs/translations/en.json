@@ -106,6 +106,7 @@
       "scene": { "name": "Scene" }
     },
     "switch": {
+      "streaming": { "name": "Streaming" },
       "virtual_camera": { "name": "Virtual camera" },
       "studio_mode": { "name": "Studio mode" }
     }

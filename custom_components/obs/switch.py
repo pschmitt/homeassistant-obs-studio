@@ -29,6 +29,14 @@ class OBSSwitchDescription(SwitchEntityDescription):
 
 SWITCHES: tuple[OBSSwitchDescription, ...] = (
     OBSSwitchDescription(
+        key="streaming",
+        name="Streaming",
+        icon="mdi:broadcast",
+        is_on_fn=lambda d: d.streaming,
+        turn_on_fn=lambda c: c.start_stream(),
+        turn_off_fn=lambda c: c.stop_stream(),
+    ),
+    OBSSwitchDescription(
         key="virtual_camera",
         name="Virtual camera",
         icon="mdi:camera-outline",
