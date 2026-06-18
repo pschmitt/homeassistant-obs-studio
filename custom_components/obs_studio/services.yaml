@@ -2,6 +2,8 @@ set_scene:
   name: Set scene
   description: Switch to a specific scene in OBS Studio.
   target:
+    device:
+      integration: obs_studio
     entity:
       integration: obs_studio
   fields:
@@ -17,6 +19,8 @@ start_stream:
   name: Start streaming
   description: Start the OBS stream.
   target:
+    device:
+      integration: obs_studio
     entity:
       integration: obs_studio
 
@@ -24,6 +28,8 @@ stop_stream:
   name: Stop streaming
   description: Stop the OBS stream.
   target:
+    device:
+      integration: obs_studio
     entity:
       integration: obs_studio
 
@@ -31,6 +37,8 @@ toggle_stream:
   name: Toggle streaming
   description: Toggle OBS streaming on or off.
   target:
+    device:
+      integration: obs_studio
     entity:
       integration: obs_studio
 
@@ -38,6 +46,8 @@ start_record:
   name: Start recording
   description: Start recording in OBS Studio.
   target:
+    device:
+      integration: obs_studio
     entity:
       integration: obs_studio
 
@@ -45,6 +55,8 @@ stop_record:
   name: Stop recording
   description: Stop recording in OBS Studio.
   target:
+    device:
+      integration: obs_studio
     entity:
       integration: obs_studio
 
@@ -52,6 +64,8 @@ toggle_record:
   name: Toggle recording
   description: Toggle OBS recording on or off.
   target:
+    device:
+      integration: obs_studio
     entity:
       integration: obs_studio
 
@@ -59,6 +73,8 @@ pause_record:
   name: Pause recording
   description: Pause the current OBS recording.
   target:
+    device:
+      integration: obs_studio
     entity:
       integration: obs_studio
 
@@ -66,6 +82,8 @@ resume_record:
   name: Resume recording
   description: Resume a paused OBS recording.
   target:
+    device:
+      integration: obs_studio
     entity:
       integration: obs_studio
 
@@ -73,6 +91,8 @@ start_virtual_cam:
   name: Start virtual camera
   description: Start the OBS virtual camera.
   target:
+    device:
+      integration: obs_studio
     entity:
       integration: obs_studio
 
@@ -80,6 +100,8 @@ stop_virtual_cam:
   name: Stop virtual camera
   description: Stop the OBS virtual camera.
   target:
+    device:
+      integration: obs_studio
     entity:
       integration: obs_studio
 
@@ -87,6 +109,8 @@ start_replay_buffer:
   name: Start replay buffer
   description: Start the OBS replay buffer.
   target:
+    device:
+      integration: obs_studio
     entity:
       integration: obs_studio
 
@@ -94,6 +118,8 @@ stop_replay_buffer:
   name: Stop replay buffer
   description: Stop the OBS replay buffer.
   target:
+    device:
+      integration: obs_studio
     entity:
       integration: obs_studio
 
@@ -101,6 +127,8 @@ save_replay_buffer:
   name: Save replay buffer
   description: Save the current OBS replay buffer clip.
   target:
+    device:
+      integration: obs_studio
     entity:
       integration: obs_studio
 
@@ -108,6 +136,8 @@ trigger_hotkey:
   name: Trigger hotkey
   description: Trigger a named OBS hotkey.
   target:
+    device:
+      integration: obs_studio
     entity:
       integration: obs_studio
   fields:

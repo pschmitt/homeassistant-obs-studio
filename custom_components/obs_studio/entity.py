@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -28,6 +28,5 @@ class OBSEntity(CoordinatorEntity[OBSCoordinator]):
             manufacturer="OBS Project",
             model="OBS Studio",
             sw_version=data.obs_version if data else None,
-            entry_type=DeviceEntryType.SERVICE,
-            configuration_url=None,
+            hw_version=data.platform_description if data else None,
         )
