@@ -10,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_registry as er
 
 from .const import (
     ATTR_HOTKEY_NAME,
@@ -36,32 +37,53 @@ from .exceptions import OBSError
 _LOGGER = logging.getLogger(__name__)
 
 
-def _get_entry(hass: HomeAssistant) -> ConfigEntry:
-    """Return the first loaded OBS config entry, or raise ServiceValidationError."""
+def _get_entry(hass: HomeAssistant, call: ServiceCall) -> ConfigEntry:
+    """Return the OBS config entry for this service call.
+
+    If the call has a target entity, the entry that owns that entity is used.
+    Otherwise the first loaded entry is used (with a warning when there are
+    multiple instances).
+    """
+    target_entity_ids = []
+    if call.target:
+        raw = call.target.get("entity_id", [])
+        target_entity_ids = [raw] if isinstance(raw, str) else list(raw)
+
+    if target_entity_ids:
+        entity_reg = er.async_get(hass)
+        for entity_id in target_entity_ids:
+            entity_entry = entity_reg.async_get(entity_id)
+            if entity_entry and entity_entry.config_entry_id:
+                entry = hass.config_entries.async_get_entry(entity_entry.config_entry_id)
+                if entry and entry.domain == DOMAIN and entry.state is ConfigEntryState.LOADED:
+                    return entry
+        raise ServiceValidationError(
+            f"No loaded OBS Studio config entry found for target {target_entity_ids[0]}"
+        )
+
     entries = [
         e
         for e in hass.config_entries.async_entries(DOMAIN)
         if e.state is ConfigEntryState.LOADED
     ]
     if not entries:
-        raise ServiceValidationError("No loaded OBS config entry found")
+        raise ServiceValidationError("No loaded OBS Studio config entry found")
     if len(entries) > 1:
         _LOGGER.warning(
-            "Multiple OBS entries loaded; using the first one (%s)", entries[0].title
+            "Multiple OBS Studio entries loaded; using '%s'. "
+            "Provide a target entity to select a specific instance.",
+            entries[0].title,
         )
     return entries[0]
 
 
-def _client(hass: HomeAssistant):
-    return _get_entry(hass).runtime_data.client
-
-
 @callback
 def async_setup_services(hass: HomeAssistant) -> None:
-    """Register all OBS services."""
+    """Register all OBS Studio services."""
 
     async def _exec(hass: HomeAssistant, call: ServiceCall, fn_name: str, *args) -> None:
-        client = _client(hass)
+        entry = _get_entry(hass, call)
+        client = entry.runtime_data.client
         try:
             await hass.async_add_executor_job(getattr(client, fn_name), *args)
         except OBSError as err:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from homeassistant.const import Platform
 
-DOMAIN = "obs"
+DOMAIN = "obs_studio"
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
     Platform.SELECT,
