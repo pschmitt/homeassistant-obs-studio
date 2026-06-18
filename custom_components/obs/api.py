@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 
-from .exceptions import OBSAuthError, OBSConnectionError, OBSRequestError
+from .exceptions import OBSAuthError, OBSConnectionError, OBSError, OBSRequestError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -74,8 +74,6 @@ def _safe_get(resp, attr: str, default=None):
 
 def _classify_error(err: Exception) -> OBSError:
     """Map a low-level exception to one of our domain exceptions."""
-    from .exceptions import OBSError  # local import to avoid circularity
-
     err_str = str(err).lower()
     if any(kw in err_str for kw in ("auth", "password", "4009", "authentication")):
         return OBSAuthError(str(err))
