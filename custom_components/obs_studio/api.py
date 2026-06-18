@@ -148,7 +148,10 @@ class OBSClient:
         try:
             return getattr(self._client, method_name)(*args, **kwargs)
         except Exception as err:
-            # Drop client so we reconnect next time.
+            if type(err).__name__ == "OBSSDKRequestError":
+                # OBS rejected the request (e.g. scene not found) — keep the connection alive.
+                raise OBSRequestError(str(err)) from err
+            # Assume connection failure; drop client so we reconnect next time.
             self._client = None
             raise _classify_error(err) from err
 

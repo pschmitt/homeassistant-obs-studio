@@ -35,7 +35,7 @@ from .const import (
 )
 from .coordinator import OBSCoordinator
 from .events import OBSEventListener
-from .services import async_setup_services
+from .services import async_setup_services, async_update_set_scene_options
 from .ssh_tunnel import OBSSSHTunnel
 
 _LOGGER = logging.getLogger(__name__)
@@ -182,6 +182,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: OBSConfigEntry) -
         ssh_tunnel=ssh_tunnel,
         event_listener=event_listener,
     )
+    async_update_set_scene_options(hass)
 
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
     config_entry.async_on_unload(config_entry.add_update_listener(_async_update_listener))

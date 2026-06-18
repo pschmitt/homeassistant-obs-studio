@@ -9,11 +9,14 @@ set_scene:
   fields:
     scene_name:
       name: Scene name
-      description: Exact name of the scene to switch to.
+      description: Scene to switch to. Available scenes are fetched from OBS at startup.
       required: true
       example: "Main Scene"
       selector:
-        text:
+        select:
+          options: []
+          custom_value: true
+          mode: dropdown
 
 start_stream:
   name: Start streaming
