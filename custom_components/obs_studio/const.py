@@ -13,6 +13,7 @@ PLATFORMS: list[Platform] = [
 ]
 
 # Config keys
+CONF_DISABLE_OFFLINE_REPAIRS = "disable_offline_repairs"
 CONF_WS_PORT = "ws_port"
 CONF_WS_PASSWORD = "ws_password"
 CONF_SSH_ENABLED = "ssh_enabled"
@@ -34,6 +35,7 @@ DEFAULT_SSH_KEY_PATH = "/config/.ssh/id_ed25519"
 DEFAULT_SCAN_INTERVAL = 10
 MIN_SCAN_INTERVAL = 5
 DEFAULT_REQUEST_TIMEOUT = 15
+DEFAULT_DISABLE_OFFLINE_REPAIRS = False
 
 # Services
 SERVICE_SET_SCENE = "set_scene"

@@ -22,6 +22,7 @@ from homeassistant.helpers.selector import (
 
 from .api import OBSClient
 from .const import (
+    CONF_DISABLE_OFFLINE_REPAIRS,
     CONF_OBS_REMOTE_HOST,
     CONF_SSH_ENABLED,
     CONF_SSH_HOST,
@@ -32,6 +33,7 @@ from .const import (
     CONF_SSH_USERNAME,
     CONF_WS_PASSWORD,
     CONF_WS_PORT,
+    DEFAULT_DISABLE_OFFLINE_REPAIRS,
     DEFAULT_OBS_REMOTE_HOST,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SSH_ENABLED,
@@ -270,7 +272,13 @@ class OBSOptionsFlow(OptionsFlow):
                             mode=NumberSelectorMode.BOX,
                             step=1,
                         )
-                    )
+                    ),
+                    vol.Required(
+                        CONF_DISABLE_OFFLINE_REPAIRS,
+                        default=self.config_entry.options.get(
+                            CONF_DISABLE_OFFLINE_REPAIRS, DEFAULT_DISABLE_OFFLINE_REPAIRS
+                        ),
+                    ): BooleanSelector(),
                 }
             ),
         )

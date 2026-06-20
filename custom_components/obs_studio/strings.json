@@ -73,10 +73,12 @@
       "init": {
         "title": "OBS Studio options",
         "data": {
-          "scan_interval": "Update interval (seconds)"
+          "scan_interval": "Update interval (seconds)",
+          "disable_offline_repairs": "Suppress offline repair notifications"
         },
         "data_description": {
-          "scan_interval": "How often to poll OBS for state. Minimum 5 s."
+          "scan_interval": "How often to poll OBS for state. Minimum 5 s.",
+          "disable_offline_repairs": "When enabled, no repair issue is raised if OBS or the SSH tunnel goes offline. Auth failures are always reported."
         }
       }
     }

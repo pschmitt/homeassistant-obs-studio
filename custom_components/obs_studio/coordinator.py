@@ -15,7 +15,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from typing import TYPE_CHECKING
 
 from .api import OBSClient, OBSData
-from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, REPAIR_AUTH_FAILED, REPAIR_CANNOT_CONNECT, REPAIR_SSH_FAILED
+from .const import CONF_DISABLE_OFFLINE_REPAIRS, DEFAULT_DISABLE_OFFLINE_REPAIRS, DEFAULT_SCAN_INTERVAL, DOMAIN, REPAIR_AUTH_FAILED, REPAIR_CANNOT_CONNECT, REPAIR_SSH_FAILED
 from .exceptions import OBSAuthError, OBSConnectionError, OBSSSHError
 
 if TYPE_CHECKING:
@@ -54,6 +54,9 @@ class OBSCoordinator(DataUpdateCoordinator[OBSData]):
     async def _async_update_data(self) -> OBSData:
         entry_id = self.config_entry.entry_id
         title = self.config_entry.title
+        disable_offline_repairs: bool = self.config_entry.options.get(
+            CONF_DISABLE_OFFLINE_REPAIRS, DEFAULT_DISABLE_OFFLINE_REPAIRS
+        )
 
         # Keep SSH tunnel alive and sync the client endpoint.
         if self._ssh_tunnel is not None:
@@ -65,15 +68,16 @@ class OBSCoordinator(DataUpdateCoordinator[OBSData]):
                     self.event_listener.update_endpoint("127.0.0.1", local_port)
                 ir.async_delete_issue(self.hass, DOMAIN, f"{REPAIR_SSH_FAILED}_{entry_id}")
             except OBSSSHError as err:
-                ir.async_create_issue(
-                    self.hass,
-                    DOMAIN,
-                    f"{REPAIR_SSH_FAILED}_{entry_id}",
-                    is_fixable=False,
-                    severity=ir.IssueSeverity.ERROR,
-                    translation_key=REPAIR_SSH_FAILED,
-                    translation_placeholders={"name": title},
-                )
+                if not disable_offline_repairs:
+                    ir.async_create_issue(
+                        self.hass,
+                        DOMAIN,
+                        f"{REPAIR_SSH_FAILED}_{entry_id}",
+                        is_fixable=False,
+                        severity=ir.IssueSeverity.ERROR,
+                        translation_key=REPAIR_SSH_FAILED,
+                        translation_placeholders={"name": title},
+                    )
                 raise UpdateFailed(f"SSH tunnel failure for {title}: {err}") from err
 
         try:
@@ -91,15 +95,16 @@ class OBSCoordinator(DataUpdateCoordinator[OBSData]):
             )
             raise ConfigEntryAuthFailed(f"OBS auth failed for {title}: {err}") from err
         except OBSConnectionError as err:
-            ir.async_create_issue(
-                self.hass,
-                DOMAIN,
-                f"{REPAIR_CANNOT_CONNECT}_{entry_id}",
-                is_fixable=False,
-                severity=ir.IssueSeverity.WARNING,
-                translation_key=REPAIR_CANNOT_CONNECT,
-                translation_placeholders={"name": title},
-            )
+            if not disable_offline_repairs:
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    f"{REPAIR_CANNOT_CONNECT}_{entry_id}",
+                    is_fixable=False,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key=REPAIR_CANNOT_CONNECT,
+                    translation_placeholders={"name": title},
+                )
             raise UpdateFailed(f"OBS connection error for {title}: {err}") from err
 
         ir.async_delete_issue(self.hass, DOMAIN, f"{REPAIR_CANNOT_CONNECT}_{entry_id}")
