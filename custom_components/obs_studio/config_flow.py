@@ -6,7 +6,6 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant, callback
@@ -98,22 +97,16 @@ def _connection_schema(defaults: dict[str, Any], *, password_optional: bool = Fa
         vol.Required(CONF_HOST, default=defaults.get(CONF_HOST, "")): TextSelector(),
         vol.Required(
             CONF_WS_PORT, default=defaults.get(CONF_WS_PORT, DEFAULT_WS_PORT)
-        ): NumberSelector(
-            NumberSelectorConfig(min=1, max=65535, mode=NumberSelectorMode.BOX)
-        ),
+        ): NumberSelector(NumberSelectorConfig(min=1, max=65535, mode=NumberSelectorMode.BOX)),
         pw_key: TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD)),
         vol.Required(
             CONF_SSH_ENABLED,
             default=defaults.get(CONF_SSH_ENABLED, DEFAULT_SSH_ENABLED),
         ): BooleanSelector(),
-        vol.Optional(
-            CONF_SSH_HOST, default=defaults.get(CONF_SSH_HOST, "")
-        ): TextSelector(),
+        vol.Optional(CONF_SSH_HOST, default=defaults.get(CONF_SSH_HOST, "")): TextSelector(),
         vol.Required(
             CONF_SSH_PORT, default=defaults.get(CONF_SSH_PORT, DEFAULT_SSH_PORT)
-        ): NumberSelector(
-            NumberSelectorConfig(min=1, max=65535, mode=NumberSelectorMode.BOX)
-        ),
+        ): NumberSelector(NumberSelectorConfig(min=1, max=65535, mode=NumberSelectorMode.BOX)),
         vol.Required(
             CONF_SSH_USERNAME,
             default=defaults.get(CONF_SSH_USERNAME, DEFAULT_SSH_USERNAME),
@@ -147,9 +140,7 @@ class OBSConfigFlow(ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(config_entry: ConfigEntry) -> OBSOptionsFlow:
         return OBSOptionsFlow()
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -220,9 +211,7 @@ class OBSConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_reauth(
-        self, entry_data: dict[str, Any]
-    ) -> ConfigFlowResult:
+    async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
@@ -266,7 +255,7 @@ _CONF_TEMPLATE_DELETE = "delete"
 def _local_url_path(output_dir: str, name: str) -> str:
     """Derive /local/… URL path from /config/www/… output directory."""
     if output_dir.startswith("/config/www/"):
-        suffix = output_dir[len("/config/www/"):].strip("/")
+        suffix = output_dir[len("/config/www/") :].strip("/")
         web_path = f"/local/{suffix}" if suffix else "/local"
     else:
         web_path = output_dir.rstrip("/")
@@ -286,9 +275,7 @@ def _overlay_url(hass: HomeAssistant, output_dir: str, name: str) -> str:
 class OBSOptionsFlow(OptionsFlow):
     """Handle OBS options."""
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(
             step_id="init",
             menu_options=["settings", "manage_templates"],
@@ -337,20 +324,13 @@ class OBSOptionsFlow(OptionsFlow):
             self._tpl_editing_idx: int | None = (
                 None
                 if action == _ACTION_ADD
-                else next(
-                    i
-                    for i, t in enumerate(templates)
-                    if t.get(CONF_TEMPLATE_NAME) == action
-                )
+                else next(i for i, t in enumerate(templates) if t.get(CONF_TEMPLATE_NAME) == action)
             )
             return await self.async_step_template_edit()
 
         choices = [
             {"value": _ACTION_ADD, "label": "+ Add template"},
-            *[
-                {"value": t[CONF_TEMPLATE_NAME], "label": t[CONF_TEMPLATE_NAME]}
-                for t in templates
-            ],
+            *[{"value": t[CONF_TEMPLATE_NAME], "label": t[CONF_TEMPLATE_NAME]} for t in templates],
         ]
         return self.async_show_form(
             step_id="manage_templates",
@@ -371,9 +351,7 @@ class OBSOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Meta step: name, source type, output directory, and optional delete."""
-        templates: list[dict] = list(
-            self.config_entry.options.get(CONF_TEMPLATES, [])
-        )
+        templates: list[dict] = list(self.config_entry.options.get(CONF_TEMPLATES, []))
         editing_idx: int | None = getattr(self, "_tpl_editing_idx", None)
         existing = templates[editing_idx] if editing_idx is not None else {}
 
@@ -387,8 +365,7 @@ class OBSOptionsFlow(OptionsFlow):
             self._tpl_name: str = user_input[CONF_TEMPLATE_NAME].strip()
             self._tpl_from_file: bool = user_input[CONF_TEMPLATE_FROM_FILE]
             self._tpl_output_dir: str = (
-                user_input[CONF_TEMPLATE_OUTPUT_DIR].strip()
-                or DEFAULT_TEMPLATE_OUTPUT_DIR
+                user_input[CONF_TEMPLATE_OUTPUT_DIR].strip() or DEFAULT_TEMPLATE_OUTPUT_DIR
             )
             if self._tpl_from_file:
                 return await self.async_step_template_edit_file()
@@ -420,9 +397,7 @@ class OBSOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Step for file-based template source."""
-        templates: list[dict] = list(
-            self.config_entry.options.get(CONF_TEMPLATES, [])
-        )
+        templates: list[dict] = list(self.config_entry.options.get(CONF_TEMPLATES, []))
         editing_idx: int | None = getattr(self, "_tpl_editing_idx", None)
         existing = templates[editing_idx] if editing_idx is not None else {}
 
@@ -461,9 +436,7 @@ class OBSOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Step for inline (pasted) template content."""
-        templates: list[dict] = list(
-            self.config_entry.options.get(CONF_TEMPLATES, [])
-        )
+        templates: list[dict] = list(self.config_entry.options.get(CONF_TEMPLATES, []))
         editing_idx: int | None = getattr(self, "_tpl_editing_idx", None)
         existing = templates[editing_idx] if editing_idx is not None else {}
 

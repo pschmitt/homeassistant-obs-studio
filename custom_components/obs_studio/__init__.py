@@ -6,8 +6,9 @@ import logging
 from dataclasses import dataclass
 
 from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
-from homeassistant.const import CONF_HOST, CONF_SCAN_INTERVAL
+from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import slugify
 
@@ -35,11 +36,11 @@ from .const import (
 )
 from .coordinator import OBSCoordinator
 from .events import OBSEventListener
-from .file_watcher import OBSFileWatcher
-from .template_renderer import OBSTemplateRenderer
 from .exceptions import OBSSSHError
+from .file_watcher import OBSFileWatcher
 from .services import async_setup_services, async_update_set_scene_options
 from .ssh_tunnel import OBSSSHTunnel
+from .template_renderer import OBSTemplateRenderer
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -78,8 +79,8 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
         hostname = old_title.removesuffix(" OBS").strip()
         new_title = f"OBS Studio {hostname}"
 
-        old_slug = slugify(old_title)   # e.g. "ge2_obs"
-        new_slug = slugify(new_title)   # e.g. "obs_studio_ge2"
+        old_slug = slugify(old_title)  # e.g. "ge2_obs"
+        new_slug = slugify(new_title)  # e.g. "obs_studio_ge2"
 
         _LOGGER.info(
             "OBS migration v1→v2: renaming '%s' → '%s' (entity prefix %s → %s)",
@@ -94,21 +95,22 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
         for entity_entry in list(entity_reg.entities.values()):
             if entity_entry.config_entry_id != config_entry.entry_id:
                 continue
-            old_eid = entity_entry.entity_id          # e.g. "select.ge2_obs_scene"
-            domain, rest = old_eid.split(".", 1)      # "select", "ge2_obs_scene"
+            old_eid = entity_entry.entity_id  # e.g. "select.ge2_obs_scene"
+            domain, rest = old_eid.split(".", 1)  # "select", "ge2_obs_scene"
             prefix = old_slug + "_"
             if not rest.startswith(prefix):
                 continue
-            suffix = rest[len(prefix):]               # "scene"
-            new_eid = f"{domain}.{new_slug}_{suffix}" # "select.obs_studio_ge2_scene"
+            suffix = rest[len(prefix) :]  # "scene"
+            new_eid = f"{domain}.{new_slug}_{suffix}"  # "select.obs_studio_ge2_scene"
             _LOGGER.debug("  renaming entity %s → %s", old_eid, new_eid)
             entity_reg.async_update_entity(old_eid, new_entity_id=new_eid)
 
-        hass.config_entries.async_update_entry(
-            config_entry, title=new_title, version=2
-        )
+        hass.config_entries.async_update_entry(config_entry, title=new_title, version=2)
 
     return True
+
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -187,9 +189,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: OBSConfigEntry) -
     )
     event_listener.start()  # spawns an asyncio task — no executor needed
     coordinator.event_listener = event_listener
-    _LOGGER.debug(
-        "OBS event listener started for %s:%s", ws_host, ws_port
-    )
+    _LOGGER.debug("OBS event listener started for %s:%s", ws_host, ws_port)
 
     config_entry.runtime_data = OBSRuntimeData(
         client=client,

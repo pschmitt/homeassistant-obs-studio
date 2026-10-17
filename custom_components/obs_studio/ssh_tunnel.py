@@ -89,11 +89,7 @@ class OBSSSHTunnel:
     @property
     def is_alive(self) -> bool:
         """Return True when the SSH connection is up and forwarding."""
-        return (
-            self._conn is not None
-            and not self._conn.is_closed()
-            and self._listener is not None
-        )
+        return self._conn is not None and not self._conn.is_closed() and self._listener is not None
 
     async def async_start(self) -> int:
         """Establish the SSH tunnel and return the assigned local port."""
@@ -128,9 +124,7 @@ class OBSSSHTunnel:
             raise
         except (asyncssh.Error, OSError, ValueError) as err:
             await self.async_stop()
-            raise OBSSSHError(
-                f"Failed to establish SSH tunnel to {self._ssh_host}: {err}"
-            ) from err
+            raise OBSSSHError(f"Failed to establish SSH tunnel to {self._ssh_host}: {err}") from err
 
     async def async_stop(self) -> None:
         """Tear down the SSH connection and tunnel."""
@@ -155,8 +149,6 @@ class OBSSSHTunnel:
         Returns the current local port (which may change after a restart).
         """
         if not self.is_alive:
-            _LOGGER.info(
-                "SSH tunnel to %s is down – reconnecting…", self._ssh_host
-            )
+            _LOGGER.info("SSH tunnel to %s is down – reconnecting…", self._ssh_host)
             return await self.async_start()
         return self.local_port  # type: ignore[return-value]

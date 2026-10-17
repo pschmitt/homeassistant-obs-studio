@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_SCAN_INTERVAL
@@ -12,10 +13,16 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from typing import TYPE_CHECKING
-
 from .api import OBSClient, OBSData
-from .const import CONF_DISABLE_OFFLINE_REPAIRS, DEFAULT_DISABLE_OFFLINE_REPAIRS, DEFAULT_SCAN_INTERVAL, DOMAIN, REPAIR_AUTH_FAILED, REPAIR_CANNOT_CONNECT, REPAIR_SSH_FAILED
+from .const import (
+    CONF_DISABLE_OFFLINE_REPAIRS,
+    DEFAULT_DISABLE_OFFLINE_REPAIRS,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+    REPAIR_AUTH_FAILED,
+    REPAIR_CANNOT_CONNECT,
+    REPAIR_SSH_FAILED,
+)
 from .exceptions import OBSAuthError, OBSConnectionError, OBSSSHError
 
 if TYPE_CHECKING:

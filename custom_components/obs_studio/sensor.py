@@ -16,7 +16,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import OBSConfigEntry
-from .api import OBSData
 from .coordinator import OBSCoordinator
 from .entity import OBSEntity
 
@@ -62,7 +61,9 @@ SENSORS: tuple[OBSSensorDescription, ...] = (
         native_unit_of_measurement=UnitOfInformation.MEGABYTES,
         state_class=SensorStateClass.MEASUREMENT,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda d: round(d.available_disk_space, 0) if d.available_disk_space is not None else None,
+        value_fn=lambda d: (
+            round(d.available_disk_space, 0) if d.available_disk_space is not None else None
+        ),
     ),
     OBSSensorDescription(
         key="active_fps",

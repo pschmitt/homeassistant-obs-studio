@@ -65,18 +65,16 @@ _SLOW_EVENTS: frozenset[str] = frozenset(
 # OBS WebSocket v5 authentication
 # ---------------------------------------------------------------------------
 
+
 def _obs_auth(password: str, salt: str, challenge: str) -> str:
-    secret = base64.b64encode(
-        hashlib.sha256((password + salt).encode()).digest()
-    ).decode()
-    return base64.b64encode(
-        hashlib.sha256((secret + challenge).encode()).digest()
-    ).decode()
+    secret = base64.b64encode(hashlib.sha256((password + salt).encode()).digest()).decode()
+    return base64.b64encode(hashlib.sha256((secret + challenge).encode()).digest()).decode()
 
 
 # ---------------------------------------------------------------------------
 # State patching — same logic as before, zero dependencies on obsws_python
 # ---------------------------------------------------------------------------
+
 
 def _safe(d: dict, key: str, default=None):
     return d.get(key, default)
@@ -129,6 +127,7 @@ def _patch_data(data, event_type: str, event_data: dict):
 # Event listener
 # ---------------------------------------------------------------------------
 
+
 class OBSEventListener:
     """Maintains a persistent OBS WebSocket connection on the HA event loop.
 
@@ -140,7 +139,7 @@ class OBSEventListener:
         host: str,
         port: int,
         password: str,
-        coordinator: "OBSCoordinator",
+        coordinator: OBSCoordinator,
     ) -> None:
         self._host = host
         self._port = port
@@ -157,9 +156,7 @@ class OBSEventListener:
         if self._task is not None:
             return
         self._task = asyncio.ensure_future(self._run())
-        _LOGGER.debug(
-            "OBS event listener task started for %s:%s", self._host, self._port
-        )
+        _LOGGER.debug("OBS event listener task started for %s:%s", self._host, self._port)
 
     async def stop(self) -> None:
         """Cancel and await the background task."""
@@ -175,9 +172,7 @@ class OBSEventListener:
         """Hot-swap the endpoint: cancel current task and restart."""
         if host == self._host and port == self._port:
             return
-        _LOGGER.debug(
-            "OBS event listener endpoint changed to %s:%s – restarting", host, port
-        )
+        _LOGGER.debug("OBS event listener endpoint changed to %s:%s – restarting", host, port)
         self._host = host
         self._port = port
         if self._task is not None:
@@ -264,9 +259,7 @@ class OBSEventListener:
         auth_info = hello.get("d", {}).get("authentication")
         auth_str = None
         if auth_info and self._password:
-            auth_str = _obs_auth(
-                self._password, auth_info["salt"], auth_info["challenge"]
-            )
+            auth_str = _obs_auth(self._password, auth_info["salt"], auth_info["challenge"])
 
         await ws.send_json(
             {
@@ -281,9 +274,7 @@ class OBSEventListener:
 
         ident = await ws.receive_json()
         if ident.get("op") != 2:
-            raise RuntimeError(
-                f"Expected Identified (op=2), got op={ident.get('op')}"
-            )
+            raise RuntimeError(f"Expected Identified (op=2), got op={ident.get('op')}")
 
     async def _event_loop(self, ws) -> None:
         """Read OBS events and dispatch them."""

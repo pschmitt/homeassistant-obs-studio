@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
@@ -38,6 +37,7 @@ from .const import (
 from .exceptions import OBSError
 
 _LOGGER = logging.getLogger(__name__)
+
 
 def _collect_scenes(hass: HomeAssistant) -> list[str]:
     """Return a sorted, deduplicated list of scenes from all loaded OBS entries."""
@@ -133,9 +133,7 @@ def _get_entry(hass: HomeAssistant, call: ServiceCall) -> ConfigEntry:
         )
 
     entries = [
-        e
-        for e in hass.config_entries.async_entries(DOMAIN)
-        if e.state is ConfigEntryState.LOADED
+        e for e in hass.config_entries.async_entries(DOMAIN) if e.state is ConfigEntryState.LOADED
     ]
     if not entries:
         raise ServiceValidationError("No loaded OBS Studio config entry found")
@@ -226,7 +224,9 @@ def async_setup_services(hass: HomeAssistant) -> None:
         (SERVICE_STOP_REPLAY_BUFFER, handle_stop_replay_buffer),
         (SERVICE_SAVE_REPLAY_BUFFER, handle_save_replay_buffer),
     ]:
-        hass.services.async_register(DOMAIN, name, handler, schema=vol.Schema({}, extra=vol.ALLOW_EXTRA))
+        hass.services.async_register(
+            DOMAIN, name, handler, schema=vol.Schema({}, extra=vol.ALLOW_EXTRA)
+        )
 
     hass.services.async_register(
         DOMAIN,
@@ -239,9 +239,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         entry = _get_entry(hass, call)
         runtime = entry.runtime_data
         if runtime.coordinator.data is None:
-            raise HomeAssistantError(
-                "OBS coordinator has no data yet — is OBS connected?"
-            )
+            raise HomeAssistantError("OBS coordinator has no data yet — is OBS connected?")
         raw = call.data.get("name")
         name_filter: set[str] | None = None
         if raw is not None:

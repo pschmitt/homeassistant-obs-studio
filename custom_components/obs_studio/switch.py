@@ -12,7 +12,6 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import OBSConfigEntry
-from .api import OBSClient, OBSData
 from .coordinator import OBSCoordinator
 from .entity import OBSEntity
 from .exceptions import OBSError
@@ -22,8 +21,8 @@ _LOGGER = logging.getLogger(__name__)
 
 @dataclass(frozen=True, kw_only=True)
 class OBSSwitchDescription(SwitchEntityDescription):
-    is_on_fn: Any = None   # Callable[[OBSData], bool]
-    turn_on_fn: Any = None   # Callable[[OBSClient], None]
+    is_on_fn: Any = None  # Callable[[OBSData], bool]
+    turn_on_fn: Any = None  # Callable[[OBSClient], None]
     turn_off_fn: Any = None  # Callable[[OBSClient], None]
 
 
