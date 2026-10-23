@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
@@ -36,7 +36,6 @@ from .const import (
 )
 from .coordinator import OBSCoordinator
 from .events import OBSEventListener
-from .exceptions import OBSSSHError
 from .file_watcher import OBSFileWatcher
 from .services import async_setup_services, async_update_set_scene_options
 from .ssh_tunnel import OBSSSHTunnel
@@ -148,15 +147,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: OBSConfigEntry) -
             obs_remote_host=config_entry.data.get(CONF_OBS_REMOTE_HOST, DEFAULT_OBS_REMOTE_HOST),
             obs_remote_port=ws_port,
         )
-        try:
-            local_port = await ssh_tunnel.async_start()
-        except OBSSSHError as err:
-            raise ConfigEntryNotReady(
-                f"SSH tunnel not available for {config_entry.title}: {err}"
-            ) from err
         ws_host = "127.0.0.1"
-        ws_port = local_port
-        _LOGGER.debug("OBS SSH tunnel ready on 127.0.0.1:%s", local_port)
+        ws_port = 0  # Filled by the coordinator after the tunnel connects.
 
     password = config_entry.data.get(CONF_WS_PASSWORD, "")
 
@@ -175,7 +167,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: OBSConfigEntry) -
         ssh_tunnel=ssh_tunnel,
         renderer=renderer,
     )
-    await coordinator.async_config_entry_first_refresh()
 
     file_watcher = OBSFileWatcher(hass, coordinator, renderer, config_entry)
     file_watcher.start()
@@ -187,7 +178,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: OBSConfigEntry) -
         password=password,
         coordinator=coordinator,
     )
-    event_listener.start()  # spawns an asyncio task — no executor needed
+    if ssh_tunnel is None:
+        event_listener.start()
     coordinator.event_listener = event_listener
     _LOGGER.debug("OBS event listener started for %s:%s", ws_host, ws_port)
 
@@ -200,9 +192,24 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: OBSConfigEntry) -
         event_listener=event_listener,
     )
     async_update_set_scene_options(hass)
+    config_entry.async_on_unload(
+        coordinator.async_add_listener(lambda: async_update_set_scene_options(hass))
+    )
 
-    await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
+    coordinator.last_update_success = False
+    try:
+        await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
+    except BaseException:
+        file_watcher.stop()
+        await event_listener.stop()
+        await hass.async_add_executor_job(client.disconnect)
+        if ssh_tunnel is not None:
+            await ssh_tunnel.async_stop()
+        raise
     config_entry.async_on_unload(config_entry.add_update_listener(_async_update_listener))
+    config_entry.async_create_background_task(
+        hass, coordinator.async_refresh(), "obs_studio_first_refresh"
+    )
     _LOGGER.debug("OBS Studio entry '%s' setup complete", config_entry.title)
     return True
 

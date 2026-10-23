@@ -155,7 +155,9 @@ class OBSEventListener:
         """Spawn the background asyncio task."""
         if self._task is not None:
             return
-        self._task = asyncio.ensure_future(self._run())
+        self._task = self._coordinator.config_entry.async_create_background_task(
+            self._coordinator.hass, self._run(), "obs_studio_events"
+        )
         _LOGGER.debug("OBS event listener task started for %s:%s", self._host, self._port)
 
     async def stop(self) -> None:

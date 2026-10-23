@@ -9,9 +9,9 @@ from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.core import HomeAssistant
 
 from . import OBSConfigEntry
-from .const import CONF_WS_PASSWORD
+from .const import CONF_SSH_KEY_CONTENT, CONF_WS_PASSWORD
 
-TO_REDACT = {CONF_WS_PASSWORD}
+TO_REDACT = {CONF_WS_PASSWORD, CONF_SSH_KEY_CONTENT}
 
 
 async def async_get_config_entry_diagnostics(
@@ -23,7 +23,7 @@ async def async_get_config_entry_diagnostics(
         "entry": {
             "title": config_entry.title,
             "data": async_redact_data(dict(config_entry.data), TO_REDACT),
-            "options": dict(config_entry.options),
+            "options": async_redact_data(dict(config_entry.options), TO_REDACT),
         },
         "data": asdict(coordinator.data) if coordinator.data else None,
         "ssh_tunnel": {

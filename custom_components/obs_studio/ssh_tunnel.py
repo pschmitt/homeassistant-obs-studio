@@ -92,6 +92,18 @@ class OBSSSHTunnel:
         return self._conn is not None and not self._conn.is_closed() and self._listener is not None
 
     async def async_start(self) -> int:
+        """Connect within a bounded deadline, cleaning partial tunnels on cancellation."""
+        try:
+            async with asyncio.timeout(20):
+                return await self._async_start()
+        except TimeoutError as err:
+            await self.async_stop()
+            raise OBSSSHError("SSH tunnel connection timed out") from err
+        except asyncio.CancelledError:
+            await self.async_stop()
+            raise
+
+    async def _async_start(self) -> int:
         """Establish the SSH tunnel and return the assigned local port."""
         await self.async_stop()
         try:
