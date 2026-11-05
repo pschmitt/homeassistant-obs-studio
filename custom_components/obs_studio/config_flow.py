@@ -5,7 +5,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import voluptuous as vol
+import probatio as vol
+from homeassistant import data_entry_flow
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant, callback
@@ -103,29 +104,40 @@ def _connection_schema(defaults: dict[str, Any], *, password_optional: bool = Fa
             CONF_SSH_ENABLED,
             default=defaults.get(CONF_SSH_ENABLED, DEFAULT_SSH_ENABLED),
         ): BooleanSelector(),
-        vol.Optional(CONF_SSH_HOST, default=defaults.get(CONF_SSH_HOST, "")): TextSelector(),
-        vol.Required(
-            CONF_SSH_PORT, default=defaults.get(CONF_SSH_PORT, DEFAULT_SSH_PORT)
+        data_entry_flow.Optional(
+            CONF_SSH_HOST,
+            default=defaults.get(CONF_SSH_HOST, ""),
+            visible={"field": CONF_SSH_ENABLED, "value": True},
+        ): TextSelector(),
+        data_entry_flow.Required(
+            CONF_SSH_PORT,
+            default=defaults.get(CONF_SSH_PORT, DEFAULT_SSH_PORT),
+            visible={"field": CONF_SSH_ENABLED, "value": True},
         ): NumberSelector(NumberSelectorConfig(min=1, max=65535, mode=NumberSelectorMode.BOX)),
-        vol.Required(
+        data_entry_flow.Required(
             CONF_SSH_USERNAME,
             default=defaults.get(CONF_SSH_USERNAME, DEFAULT_SSH_USERNAME),
+            visible={"field": CONF_SSH_ENABLED, "value": True},
         ): TextSelector(),
-        vol.Optional(
+        data_entry_flow.Optional(
             CONF_SSH_KEY_PATH,
             default=defaults.get(CONF_SSH_KEY_PATH, DEFAULT_SSH_KEY_PATH),
+            visible={"field": CONF_SSH_ENABLED, "value": True},
         ): TextSelector(),
-        vol.Optional(
+        data_entry_flow.Optional(
             CONF_SSH_KEY_CONTENT,
             default=defaults.get(CONF_SSH_KEY_CONTENT, ""),
+            visible={"field": CONF_SSH_ENABLED, "value": True},
         ): TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD, multiline=True)),
-        vol.Optional(
+        data_entry_flow.Optional(
             CONF_SSH_KNOWN_HOSTS,
             default=defaults.get(CONF_SSH_KNOWN_HOSTS, ""),
+            visible={"field": CONF_SSH_ENABLED, "value": True},
         ): TextSelector(TextSelectorConfig(multiline=True)),
-        vol.Required(
+        data_entry_flow.Required(
             CONF_OBS_REMOTE_HOST,
             default=defaults.get(CONF_OBS_REMOTE_HOST, DEFAULT_OBS_REMOTE_HOST),
+            visible={"field": CONF_SSH_ENABLED, "value": True},
         ): TextSelector(),
     }
 
@@ -145,7 +157,8 @@ class OBSConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             user_input[CONF_WS_PORT] = int(user_input[CONF_WS_PORT])
-            user_input[CONF_SSH_PORT] = int(user_input[CONF_SSH_PORT])
+            if CONF_SSH_PORT in user_input:
+                user_input[CONF_SSH_PORT] = int(user_input[CONF_SSH_PORT])
             name = user_input.pop(CONF_NAME, None) or user_input[CONF_HOST]
             try:
                 await _async_validate(self.hass, user_input)
@@ -185,7 +198,8 @@ class OBSConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             user_input[CONF_WS_PORT] = int(user_input[CONF_WS_PORT])
-            user_input[CONF_SSH_PORT] = int(user_input[CONF_SSH_PORT])
+            if CONF_SSH_PORT in user_input:
+                user_input[CONF_SSH_PORT] = int(user_input[CONF_SSH_PORT])
             if not user_input.get(CONF_WS_PASSWORD):
                 user_input[CONF_WS_PASSWORD] = entry.data.get(CONF_WS_PASSWORD, "")
             merged = {**entry.data, **user_input}
