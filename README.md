@@ -66,16 +66,21 @@ The SSH key must be pre-authorised on the remote host (`~/.ssh/authorized_keys`)
 
 ## Installation
 
+[![Open this integration in Home Assistant Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=pschmitt&repository=homeassistant-obs-studio&category=integration)
+
+For Home Assistant 2026.11 and later, use the Marketplace badge to add this
+repository as a custom repository and install the integration.
+
+### Older installations: HACS custom repository
+
+Add `https://github.com/pschmitt/homeassistant-obs-studio` as a custom HACS
+repository, install, and restart Home Assistant.
+
 ### Manual
 
 1. Copy or symlink `custom_components/obs` into your HA `custom_components/` directory.
 2. Restart Home Assistant.
 3. Go to **Settings → Devices & services → Add integration** and search for **OBS Studio**.
-
-### HACS (custom repo)
-
-Add `https://github.com/pschmitt/homeassistant-obs-studio` as a custom HACS repository,
-install, and restart Home Assistant.
 
 ## Configuration
 
