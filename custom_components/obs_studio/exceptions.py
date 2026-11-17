@@ -19,5 +19,9 @@ class OBSRequestError(OBSError):
     """Raised when an OBS WebSocket request returns an error."""
 
 
+class OBSInputError(OBSError):
+    """Raised when no suitable audio input can be resolved or acted on."""
+
+
 class OBSSSHError(OBSError):
     """Raised when the SSH tunnel fails."""

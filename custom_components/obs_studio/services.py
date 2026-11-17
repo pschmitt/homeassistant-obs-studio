@@ -3,10 +3,17 @@
 from __future__ import annotations
 
 import logging
+import math
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
-from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.core import (
+    HomeAssistant,
+    ServiceCall,
+    ServiceResponse,
+    SupportsResponse,
+    callback,
+)
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
@@ -14,18 +21,29 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.service import async_set_service_schema
 
 from .const import (
+    ATTR_DIRECTION,
     ATTR_HOTKEY_NAME,
+    ATTR_INPUT_KINDS,
+    ATTR_INPUT_NAME,
+    ATTR_MAX_DB,
+    ATTR_MIN_DB,
+    ATTR_MUTED,
+    ATTR_SCENE_INPUTS,
     ATTR_SCENE_NAME,
+    ATTR_STEP_DB,
+    ATTR_UNMUTE_ON_UP,
     DOMAIN,
     SERVICE_PAUSE_RECORD,
     SERVICE_RENDER_TEMPLATES,
     SERVICE_RESUME_RECORD,
     SERVICE_SAVE_REPLAY_BUFFER,
+    SERVICE_SET_INPUT_MUTE,
     SERVICE_SET_SCENE,
     SERVICE_START_RECORD,
     SERVICE_START_REPLAY_BUFFER,
     SERVICE_START_STREAM,
     SERVICE_START_VIRTUAL_CAM,
+    SERVICE_STEP_INPUT_VOLUME,
     SERVICE_STOP_RECORD,
     SERVICE_STOP_REPLAY_BUFFER,
     SERVICE_STOP_STREAM,
@@ -34,9 +52,77 @@ from .const import (
     SERVICE_TOGGLE_STREAM,
     SERVICE_TRIGGER_HOTKEY,
 )
-from .exceptions import OBSError
+from .exceptions import OBSError, OBSInputError
+from .inputs import OBS_MAX_DB, OBS_MIN_DB, InputTarget
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _finite_float(value) -> float:
+    """Coerce to a float and reject NaN and infinity."""
+    if isinstance(value, bool):
+        raise vol.Invalid("expected a number")
+    number = vol.Coerce(float)(value)
+    if not math.isfinite(number):
+        raise vol.Invalid("expected a finite number")
+    return number
+
+
+def _scene_inputs(value) -> dict[str, list[str]]:
+    """Validate a mapping of program scene name to a list of input names."""
+    mapping = vol.Schema({cv.string: vol.All(cv.ensure_list, [cv.string])})(value)
+    if not mapping or any(not names for names in mapping.values()):
+        raise vol.Invalid("scene_inputs needs at least one scene with at least one input")
+    return mapping
+
+
+_TARGET_SCHEMA = {
+    vol.Exclusive(ATTR_INPUT_NAME, "target"): vol.All(cv.string, vol.Length(min=1)),
+    vol.Exclusive(ATTR_SCENE_INPUTS, "target"): _scene_inputs,
+    vol.Optional(ATTR_INPUT_KINDS): vol.All(cv.ensure_list, [cv.string]),
+}
+
+
+_REQUIRE_TARGET = cv.has_at_least_one_key(ATTR_INPUT_NAME, ATTR_SCENE_INPUTS)
+
+
+def _target_from(data) -> InputTarget:
+    return InputTarget(
+        input_name=data.get(ATTR_INPUT_NAME),
+        scene_inputs=data.get(ATTR_SCENE_INPUTS),
+        input_kinds=data.get(ATTR_INPUT_KINDS),
+    )
+
+
+def _validate_bounds(data):
+    if not data[ATTR_MIN_DB] < data[ATTR_MAX_DB]:
+        raise vol.Invalid("min_db must be lower than max_db")
+    return data
+
+
+_SET_INPUT_MUTE_SCHEMA = vol.All(
+    vol.Schema({**_TARGET_SCHEMA, vol.Required(ATTR_MUTED): cv.boolean}, extra=vol.ALLOW_EXTRA),
+    _REQUIRE_TARGET,
+)
+_STEP_INPUT_VOLUME_SCHEMA = vol.All(
+    vol.Schema(
+        {
+            **_TARGET_SCHEMA,
+            vol.Required(ATTR_DIRECTION): vol.In(["up", "down"]),
+            vol.Required(ATTR_STEP_DB): vol.All(_finite_float, vol.Range(min=0.1, max=OBS_MAX_DB)),
+            vol.Optional(ATTR_MIN_DB, default=OBS_MIN_DB): vol.All(
+                _finite_float, vol.Range(min=OBS_MIN_DB, max=OBS_MAX_DB)
+            ),
+            vol.Optional(ATTR_MAX_DB, default=0.0): vol.All(
+                _finite_float, vol.Range(min=OBS_MIN_DB, max=OBS_MAX_DB)
+            ),
+            vol.Optional(ATTR_UNMUTE_ON_UP, default=False): cv.boolean,
+        },
+        extra=vol.ALLOW_EXTRA,
+    ),
+    _REQUIRE_TARGET,
+    _validate_bounds,
+)
 
 
 def _collect_scenes(hass: HomeAssistant) -> list[str]:
@@ -202,6 +288,51 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def handle_trigger_hotkey(call: ServiceCall) -> None:
         await _exec(hass, call, "trigger_hotkey", call.data[ATTR_HOTKEY_NAME])
+
+    async def _input_audio(call: ServiceCall, fn_name: str, *args) -> ServiceResponse:
+        """Run a read-modify-write input audio operation, one at a time per OBS entry."""
+        entry = _get_entry(hass, call)
+        runtime = entry.runtime_data
+        target = _target_from(call.data)
+        async with runtime.audio_lock:
+            try:
+                result = await hass.async_add_executor_job(
+                    getattr(runtime.client, fn_name), target, *args
+                )
+            except OBSInputError as err:
+                raise ServiceValidationError(str(err)) from err
+            except OBSError as err:
+                raise HomeAssistantError(str(err)) from err
+        return result.as_dict()
+
+    async def handle_set_input_mute(call: ServiceCall) -> ServiceResponse:
+        return await _input_audio(call, "set_input_mute", call.data[ATTR_MUTED])
+
+    async def handle_step_input_volume(call: ServiceCall) -> ServiceResponse:
+        return await _input_audio(
+            call,
+            "step_input_volume",
+            call.data[ATTR_DIRECTION],
+            call.data[ATTR_STEP_DB],
+            call.data[ATTR_MIN_DB],
+            call.data[ATTR_MAX_DB],
+            call.data[ATTR_UNMUTE_ON_UP],
+        )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_INPUT_MUTE,
+        handle_set_input_mute,
+        schema=_SET_INPUT_MUTE_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_STEP_INPUT_VOLUME,
+        handle_step_input_volume,
+        schema=_STEP_INPUT_VOLUME_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
 
     hass.services.async_register(
         DOMAIN,

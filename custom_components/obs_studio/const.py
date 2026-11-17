@@ -54,6 +54,8 @@ SERVICE_STOP_REPLAY_BUFFER = "stop_replay_buffer"
 SERVICE_SAVE_REPLAY_BUFFER = "save_replay_buffer"
 SERVICE_TRIGGER_HOTKEY = "trigger_hotkey"
 SERVICE_RENDER_TEMPLATES = "render_templates"
+SERVICE_SET_INPUT_MUTE = "set_input_mute"
+SERVICE_STEP_INPUT_VOLUME = "step_input_volume"
 
 # Template overlay rendering
 CONF_TEMPLATES = "templates"
@@ -68,6 +70,15 @@ DEFAULT_TEMPLATE_SOURCE_DIR = "/config/obs_studio/templates"
 # Attributes
 ATTR_SCENE_NAME = "scene_name"
 ATTR_HOTKEY_NAME = "hotkey_name"
+ATTR_INPUT_NAME = "input_name"
+ATTR_SCENE_INPUTS = "scene_inputs"
+ATTR_INPUT_KINDS = "input_kinds"
+ATTR_MUTED = "muted"
+ATTR_DIRECTION = "direction"
+ATTR_STEP_DB = "step_db"
+ATTR_MIN_DB = "min_db"
+ATTR_MAX_DB = "max_db"
+ATTR_UNMUTE_ON_UP = "unmute_on_up"
 
 # Repair issue IDs
 REPAIR_CANNOT_CONNECT = "cannot_connect"

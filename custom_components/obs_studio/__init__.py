@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
@@ -54,6 +55,8 @@ class OBSRuntimeData:
     file_watcher: OBSFileWatcher
     ssh_tunnel: OBSSSHTunnel | None
     event_listener: OBSEventListener | None
+    # Serialises read-modify-write input audio services for this entry.
+    audio_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 
 type OBSConfigEntry = ConfigEntry[OBSRuntimeData]

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import logging
+import threading
 from dataclasses import dataclass, field
 
 from .exceptions import OBSAuthError, OBSConnectionError, OBSError, OBSRequestError
+from .inputs import InputResult, InputTarget, set_mute, step_volume
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -102,6 +104,9 @@ class OBSClient:
         self._password = password
         self._timeout = timeout
         self._client = None
+        # The obsws_python request client is not thread-safe and every call runs in an
+        # executor thread (poller, services). Compound operations hold this lock.
+        self._lock = threading.RLock()
 
     # ------------------------------------------------------------------
     # Connection management
@@ -144,16 +149,17 @@ class OBSClient:
 
     def _call(self, method_name: str, *args, **kwargs):
         """Call a method on the inner client, reconnecting once on failure."""
-        self._ensure_connected()
-        try:
-            return getattr(self._client, method_name)(*args, **kwargs)
-        except Exception as err:
-            if type(err).__name__ == "OBSSDKRequestError":
-                # OBS rejected the request (e.g. scene not found) — keep the connection alive.
-                raise OBSRequestError(str(err)) from err
-            # Assume connection failure; drop client so we reconnect next time.
-            self._client = None
-            raise _classify_error(err) from err
+        with self._lock:
+            self._ensure_connected()
+            try:
+                return getattr(self._client, method_name)(*args, **kwargs)
+            except Exception as err:
+                if type(err).__name__ == "OBSSDKRequestError":
+                    # OBS rejected the request (e.g. scene not found) — keep the connection alive.
+                    raise OBSRequestError(str(err)) from err
+                # Assume connection failure; drop client so we reconnect next time.
+                self._client = None
+                raise _classify_error(err) from err
 
     # ------------------------------------------------------------------
     # Data fetching
@@ -161,6 +167,10 @@ class OBSClient:
 
     def fetch_data(self) -> OBSData:
         """Fetch a complete state snapshot from OBS."""
+        with self._lock:
+            return self._fetch_data()
+
+    def _fetch_data(self) -> OBSData:
         self._ensure_connected()
         data = OBSData()
         client = self._client
@@ -344,6 +354,44 @@ class OBSClient:
     def trigger_hotkey(self, hotkey_name: str) -> None:
         _LOGGER.debug("OBS trigger_hotkey %r", hotkey_name)
         self._call("trigger_hot_key_by_name", hotkey_name)
+
+    # ------------------------------------------------------------------
+    # Audio inputs
+    # ------------------------------------------------------------------
+
+    def _input_operation(self, operation, *args) -> InputResult:
+        """Run a compound input operation with the client lock held."""
+        with self._lock:
+            self._ensure_connected()
+            try:
+                return operation(self._client, *args)
+            except OBSError:
+                raise
+            except Exception as err:
+                if type(err).__name__ == "OBSSDKRequestError":
+                    raise OBSRequestError(str(err)) from err
+                self._client = None
+                raise _classify_error(err) from err
+
+    def set_input_mute(self, target: InputTarget, muted: bool) -> InputResult:
+        """Mute or unmute the inputs selected by ``target`` (verified by readback)."""
+        _LOGGER.debug("OBS set_input_mute muted=%s", muted)
+        return self._input_operation(set_mute, target, muted)
+
+    def step_input_volume(
+        self,
+        target: InputTarget,
+        direction: str,
+        step_db: float,
+        min_db: float,
+        max_db: float,
+        unmute_on_up: bool,
+    ) -> InputResult:
+        """Step the volume of the inputs selected by ``target`` within the given bounds."""
+        _LOGGER.debug("OBS step_input_volume direction=%s step=%s", direction, step_db)
+        return self._input_operation(
+            step_volume, target, direction, step_db, min_db, max_db, unmute_on_up
+        )
 
     # ------------------------------------------------------------------
     # Validation helper

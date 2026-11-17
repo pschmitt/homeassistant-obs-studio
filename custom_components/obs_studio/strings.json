@@ -287,6 +287,66 @@
           "description": "Name of a specific template to render. Omit to render all templates."
         }
       }
+    },
+    "set_input_mute": {
+      "name": "Set input mute",
+      "description": "Mute or unmute an OBS input or the allowed input(s) on the current program scene.",
+      "fields": {
+        "muted": {
+          "name": "Muted",
+          "description": "Mute the input (true) or unmute it (false)."
+        },
+        "input_name": {
+          "name": "Input name",
+          "description": "Exact name of one input. Use this or scene inputs, not both."
+        },
+        "scene_inputs": {
+          "name": "Scene inputs",
+          "description": "Allowlist mapping a program scene name to the input names that may be changed while that scene is on air."
+        },
+        "input_kinds": {
+          "name": "Input kinds",
+          "description": "Only act on inputs of these OBS kinds (version suffixes are ignored)."
+        }
+      }
+    },
+    "step_input_volume": {
+      "name": "Step input volume",
+      "description": "Raise or lower an OBS input volume by a step in dB within bounds.",
+      "fields": {
+        "direction": {
+          "name": "Direction",
+          "description": "Raise (up) or lower (down) the volume."
+        },
+        "step_db": {
+          "name": "Step",
+          "description": "Step size in dB."
+        },
+        "min_db": {
+          "name": "Minimum",
+          "description": "Lowest volume to step down to."
+        },
+        "max_db": {
+          "name": "Maximum",
+          "description": "Highest volume to step up to."
+        },
+        "unmute_on_up": {
+          "name": "Unmute when raising",
+          "description": "Also unmute when the direction is up, even at the maximum volume."
+        },
+        "input_name": {
+          "name": "Input name",
+          "description": "Exact name of one input. Use this or scene inputs, not both."
+        },
+        "scene_inputs": {
+          "name": "Scene inputs",
+          "description": "Allowlist mapping a program scene name to the input names that may be changed while that scene is on air."
+        },
+        "input_kinds": {
+          "name": "Input kinds",
+          "description": "Only act on inputs of these OBS kinds (version suffixes are ignored)."
+        }
+      }
     }
   },
   "issues": {
