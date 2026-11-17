@@ -50,6 +50,17 @@ def test_mute_schema():
         schema({"muted": True, "input_name": ""})
 
 
+def test_unknown_keys_rejected_but_ha_targets_allowed():
+    mute = services._SET_INPUT_MUTE_SCHEMA
+    with pytest.raises(vol.Invalid):
+        mute({"muted": True, "typo": 1, **SCENES})
+    assert mute({"muted": True, "entity_id": ["select.x"], **SCENES})
+    step = services._STEP_INPUT_VOLUME_SCHEMA
+    with pytest.raises(vol.Invalid):
+        step({"direction": "up", "step_db": 3, "unmute_up": True, **SCENES})
+    assert step({"direction": "up", "step_db": 3, "device_id": "d", **SCENES})
+
+
 def test_step_schema_defaults_and_rejections():
     schema = services._STEP_INPUT_VOLUME_SCHEMA
     out = schema({"direction": "up", "step_db": 3, **SCENES})

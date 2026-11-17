@@ -83,6 +83,12 @@ _TARGET_SCHEMA = {
 }
 
 
+# Keys Home Assistant adds from the action's ``target:`` block.
+_HA_TARGET_KEYS = {
+    vol.Optional(key): cv.match_all
+    for key in ("entity_id", "device_id", "area_id", "floor_id", "label_id")
+}
+
 _REQUIRE_TARGET = cv.has_at_least_one_key(ATTR_INPUT_NAME, ATTR_SCENE_INPUTS)
 
 
@@ -101,13 +107,17 @@ def _validate_bounds(data):
 
 
 _SET_INPUT_MUTE_SCHEMA = vol.All(
-    vol.Schema({**_TARGET_SCHEMA, vol.Required(ATTR_MUTED): cv.boolean}, extra=vol.ALLOW_EXTRA),
+    vol.Schema(
+        {**_TARGET_SCHEMA, **_HA_TARGET_KEYS, vol.Required(ATTR_MUTED): cv.boolean},
+        extra=vol.PREVENT_EXTRA,
+    ),
     _REQUIRE_TARGET,
 )
 _STEP_INPUT_VOLUME_SCHEMA = vol.All(
     vol.Schema(
         {
             **_TARGET_SCHEMA,
+            **_HA_TARGET_KEYS,
             vol.Required(ATTR_DIRECTION): vol.In(["up", "down"]),
             vol.Required(ATTR_STEP_DB): vol.All(_finite_float, vol.Range(min=0.1, max=OBS_MAX_DB)),
             vol.Optional(ATTR_MIN_DB, default=OBS_MIN_DB): vol.All(
@@ -118,7 +128,7 @@ _STEP_INPUT_VOLUME_SCHEMA = vol.All(
             ),
             vol.Optional(ATTR_UNMUTE_ON_UP, default=False): cv.boolean,
         },
-        extra=vol.ALLOW_EXTRA,
+        extra=vol.PREVENT_EXTRA,
     ),
     _REQUIRE_TARGET,
     _validate_bounds,

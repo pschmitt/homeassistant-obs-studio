@@ -367,6 +367,9 @@ class OBSClient:
                 return operation(self._client, *args)
             except OBSError:
                 raise
+            except (AttributeError, KeyError, TypeError, ValueError) as err:
+                # An unexpected reply shape is not a connection failure.
+                raise OBSRequestError(f"unexpected OBS reply: {err}") from err
             except Exception as err:
                 if type(err).__name__ == "OBSSDKRequestError":
                     raise OBSRequestError(str(err)) from err

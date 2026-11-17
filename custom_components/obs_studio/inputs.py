@@ -163,7 +163,8 @@ def next_volume(
     if direction == "up":
         if current_db >= max_db:
             return current_db
-        return min(current_db + step_db, max_db)
+        # A volume below the floor is raised into the bounds, never lowered.
+        return min(max(current_db + step_db, min_db), max_db)
     if current_db <= min_db:
         return current_db
     return max(current_db - step_db, min_db)
@@ -186,7 +187,7 @@ def step_volume(
     if direction not in ("up", "down"):
         raise OBSInputError(f"invalid direction {direction!r}")
     for value in (step_db, min_db, max_db):
-        if not math.isfinite(value):
+        if isinstance(value, bool) or not math.isfinite(value):
             raise OBSInputError("step and bounds must be finite numbers")
     if step_db <= 0 or not OBS_MIN_DB <= min_db < max_db <= OBS_MAX_DB:
         raise OBSInputError("invalid step or volume bounds")

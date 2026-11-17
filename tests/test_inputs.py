@@ -97,6 +97,7 @@ def test_next_volume_bounds_and_monotonic():
     assert next_volume(-40, "down", 3, -40, 0) == -40
     assert next_volume(-60, "down", 3, -40, 0) == -60  # never raised by a "down"
     assert next_volume(-math.inf, "up", 3, -100, 0) == -97
+    assert next_volume(-100, "up", 3, -40, 0) == -40  # raised into the bounds
 
 
 def test_resolve_unmapped_scene_fails_closed():
@@ -228,6 +229,13 @@ def test_invalid_step_or_bounds(step, lo, hi):
     c = client()
     with pytest.raises(OBSInputError):
         step_volume(c, TARGET, "up", step, lo, hi, True)
+    assert c.calls == []
+
+
+def test_bool_step_rejected():
+    c = client()
+    with pytest.raises(OBSInputError):
+        step_volume(c, TARGET, "up", True, -40, 0, True)
     assert c.calls == []
 
 
